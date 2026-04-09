@@ -1,5 +1,19 @@
 # TARTAN — Constraint Closure Visualizer
 
+# Beyond Prediction
+
+* [Why the Future of AI Relies on Constraint Closure](blog-post.md)
+
+* [The Shift to World-State Reconstruction](conceptual-introduction.md)
+
+# Operational Protocol
+
+* [Defensive Branch and Sensor Integrity Management](operational-protocol.md)
+
+[Mapping the Unseen City of Data](analogies.md)
+
+[Fixing AI Hallucinations](https://standardgalactic.github.io/TARTAN/)  – *Audio Overview*
+
 The **TARTAN architecture** proposes a shift in artificial intelligence from predictive approximation to a formal regime of **constraint closure**. Rather than treating observations as independent signals, it models them as **projections of a shared underlying state**, requiring reconstruction through global consistency rather than local fit.
 
 Grounded in the **Relativistic Scalar–Vector Plenum (RSVP)** framework, inference is recast as the search for a configuration that simultaneously satisfies **projection constraints** and **dynamical admissibility conditions**. In this view, perception, reasoning, and modeling are unified as processes of **entropy reduction through structural reconciliation**.
