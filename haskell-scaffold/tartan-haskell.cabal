@@ -1,0 +1,47 @@
+cabal-version:      3.0
+name:               tartan-haskell
+version:            0.1.0.0
+license:            MIT
+license-file:       LICENSE
+author:             Flyxion
+maintainer:         example@example.com
+category:           Research
+build-type:         Simple
+extra-doc-files:    README.md
+
+common common-settings
+  ghc-options: -Wall
+  default-language: Haskell2010
+  default-extensions: NamedFieldPuns
+  build-depends:
+      base >=4.14 && <5
+    , containers
+    , vector
+    , filepath
+    , directory
+
+library
+  import:           common-settings
+  hs-source-dirs:   src
+  exposed-modules:
+      Tartan.Types
+    , Tartan.Grid
+    , Tartan.Tile
+    , Tartan.Overlap
+    , Tartan.Defect
+    , Tartan.Repair
+    , Tartan.Retiling
+    , Tartan.Consistency
+    , Tartan.Trajectory
+    , Tartan.CLIO
+    , RSVP.Dynamics
+    , Visualization.PPM
+
+executable tartan-demo
+  import:           common-settings
+  hs-source-dirs:   app, experiments, src
+  main-is:          Main.hs
+  other-modules:
+      Experiment
+  build-depends:
+      tartan-haskell
