@@ -102,13 +102,12 @@ select{
 
 <div id="subtitle-box"></div>
 
-<div id="track-selector">
-  <select id="trackSelect">
-    <option value="0">Fixing AI Hallucinations (TARTAN)</option>
-    <option value="1">Mathematical Certainty of Hallucinations</option>
-    <option value="2">Why AI Hallucinates + Apps Hide Files</option>
-  </select>
-</div>
+<select id="trackSelect">
+  <option value="0">Replacing Messages with Shared Worlds</option>
+  <option value="1">Fixing AI Hallucinations (TARTAN)</option>
+  <option value="2">Mathematical Certainty of Hallucinations</option>
+  <option value="3">Why AI Hallucinates + Apps Hide Files</option>
+</select>
 
 <audio id="audio" crossorigin="anonymous"></audio>
 
@@ -121,6 +120,7 @@ setTimeout(()=>{
 
 /* ===== TRACK DATA ===== */
 const tracks = [
+  { audio: "Replacing_messages_with_shared_worlds.mp3", vtt: "Replacing_messages_with_shared_worlds.vtt" },
   { audio: "Fixing_AI_Hallucinations_with_TARTAN.mp3",            vtt: "Fixing_AI_Hallucinations_with_TARTAN.vtt" },
   { audio: "The-mathematical-certainty-of-AI-hallucinations.mp3", vtt: "The-mathematical-certainty-of-AI-hallucinations.vtt" },
   { audio: "Why-AI-Hallucinates-and-Apps-Hide-Files.mp3",         vtt: "Why-AI-Hallucinates-and-Apps-Hide-Files.vtt" }
