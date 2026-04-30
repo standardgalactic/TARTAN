@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Audioscope</title>
+<style>
+  html, body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #020802;
+    color: #9cff9c;
+    font-family: "Courier New", monospace;
+  }
+
+  canvas {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at center, #061806 0%, #020802 55%, #000 100%);
+    touch-action: manipulation;
+  }
+
+  .crt::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background:
+      repeating-linear-gradient(
+        to bottom,
+        rgba(255,255,255,0.035) 0px,
+        rgba(255,255,255,0.035) 1px,
+        transparent 2px,
+        transparent 4px
+      );
+    mix-blend-mode: screen;
+    opacity: 0.22;
+    z-index: 5;
+  }
+
+  .crt::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(circle at center, transparent 55%, rgba(0,0,0,0.55) 100%);
+    z-index: 6;
+  }
+
+  #title {
+    position: fixed;
+    top: 18px;
+    left: 22px;
+    z-index: 10;
+    font-size: 13px;
+    letter-spacing: 0.12em;
+    opacity: 0.8;
+    text-shadow: 0 0 8px #00ff66;
+  }
+
+  #trackName {
+    position: fixed;
+    bottom: 18px;
+    left: 22px;
+    z-index: 10;
+    font-size: 12px;
+    opacity: 0.75;
+    text-shadow: 0 0 8px #00ff66;
+  }
+
+  #key {
+    position: fixed;
+    right: 18px;
+    bottom: 18px;
+    z-index: 20;
+    border: 1px solid rgba(130,255,130,0.55);
+    color: #b7ffb7;
+    background: rgba(0, 30, 0, 0.72);
+    padding: 9px 13px;
+    font-family: inherit;
+    cursor: pointer;
+    box-shadow: 0 0 14px rgba(0,255,80,0.22);
+  }
+
+  #panel {
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    z-index: 19;
+    transform: translate(-50%, -50%) scale(0.96);
+    width: min(420px, calc(100vw - 36px));
+    background: rgba(0, 18, 0, 0.92);
+    border: 1px solid rgba(130,255,130,0.55);
+    box-shadow: 0 0 25px rgba(0,255,80,0.18);
+    padding: 18px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 180ms ease, transform 180ms ease;
+  }
+
+  #panel.open {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  .track {
+    display: block;
+    width: 100%;
+    margin: 7px 0;
+    padding: 10px;
+    background: rgba(0, 45, 0, 0.65);
+    border: 1px solid rgba(130,255,130,0.35);
+    color: #b7ffb7;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .track:hover {
+    background: rgba(0, 75, 0, 0.75);
+  }
+
+  #hint {
+    position: fixed;
+    inset: 0;
+    z-index: 12;
+    display: grid;
+    place-items: center;
+    color: #b7ffb7;
+    font-size: 14px;
+    letter-spacing: 0.08em;
+    text-shadow: 0 0 12px #00ff66;
+    pointer-events: none;
+    opacity: 0.9;
+  }
+
+  #hint.hidden {
+    opacity: 0;
+    transition: opacity 400ms ease;
+  }
+</style>
+</head>
+<body class="crt">
+
+<canvas id="visualizer"></canvas>
+
+<div id="title">LISSAJOUS MONITOR</div>
+<div id="trackName">baile_excesivo.mp3</div>
+<div id="hint">TAP / CLICK TO START</div>
+
+<button id="key">TRACKS</button>
+
+<div id="panel">
+  <button class="track" data-src="baile_excesivo.mp3">baile_excesivo.mp3</button>
+  <button class="track" data-src="healing_the_jagged_edge.mp3">healing_the_jagged_edge.mp3</button>
+  <button class="track" data-src="the_amber_canvas.mp3">the_amber_canvas.mp3</button>
+  <button class="track" data-src="concrete_cracks.mp3">concrete_cracks.mp3</button>
+  <button class="track" data-src="malignant_novelty.mp3">malignant_novelty.mp3</button>
+</div>
+
+<audio id="audio" preload="auto" crossorigin="anonymous"></audio>
+
+<script>
+const canvas = document.getElementById("visualizer");
+const ctx = canvas.getContext("2d");
+
+const audio = document.getElementById("audio");
+const key = document.getElementById("key");
+const panel = document.getElementById("panel");
+const trackName = document.getElementById("trackName");
+const hint = document.getElementById("hint");
+
+const tracks = [
+  "baile_excesivo.mp3",
+  "healing_the_jagged_edge.mp3",
+  "the_amber_canvas.mp3",
+  "concrete_cracks.mp3",
+  "malignant_novelty.mp3"
+];
+
+let audioCtx;
+let analyser;
+let source;
+let data;
+let started = false;
+let currentTrack = tracks[0];
+
+audio.src = currentTrack;
+audio.load();
+
+function resize() {
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = Math.floor(window.innerWidth * dpr);
+  canvas.height = Math.floor(window.innerHeight * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+window.addEventListener("resize", resize);
+resize();
+
+function setupAudio() {
+  if (audioCtx) return;
+
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  analyser = audioCtx.createAnalyser();
+  analyser.fftSize = 2048;
+  analyser.smoothingTimeConstant = 0.82;
+
+  source = audioCtx.createMediaElementSource(audio);
+  source.connect(analyser);
+  analyser.connect(audioCtx.destination);
+
+  data = new Uint8Array(analyser.frequencyBinCount);
+}
+
+async function startAudio() {
+  setupAudio();
+
+  if (audioCtx.state === "suspended") {
+    await audioCtx.resume();
+  }
+
+  try {
+    await audio.play();
+    started = true;
+    hint.classList.add("hidden");
+  } catch (err) {
+    console.warn("Audio start failed:", err);
+  }
+}
+
+function togglePanel(event) {
+  event.stopPropagation();
+  panel.classList.toggle("open");
+}
+
+key.addEventListener("click", togglePanel);
+key.addEventListener("pointerdown", event => event.stopPropagation());
+
+document.querySelectorAll(".track").forEach(button => {
+  button.addEventListener("click", async event => {
+    event.stopPropagation();
+
+    currentTrack = button.dataset.src;
+    audio.src = currentTrack;
+    audio.load();
+    trackName.textContent = currentTrack;
+    panel.classList.remove("open");
+
+    await startAudio();
+  });
+});
+
+canvas.addEventListener("pointerdown", async () => {
+  if (!started || audio.paused) {
+    await startAudio();
+  } else {
+    audio.pause();
+  }
+});
+
+document.body.addEventListener("pointerdown", async event => {
+  if (event.target === key || panel.contains(event.target)) return;
+
+  if (!started) {
+    await startAudio();
+  }
+});
+
+function drawBackground(w, h, t) {
+  ctx.fillStyle = "rgba(0, 5, 0, 0.22)";
+  ctx.fillRect(0, 0, w, h);
+
+  const cx = w / 2;
+  const cy = h / 2;
+  const r = Math.min(w, h) * 0.34;
+
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(t * 0.00004);
+
+  for (let i = 1; i <= 4; i++) {
+    ctx.beginPath();
+    ctx.arc(0, 0, r * i / 4, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(80, 255, 120, ${0.035 + i * 0.012})`;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+
+  ctx.beginPath();
+  ctx.moveTo(-r, 0);
+  ctx.lineTo(r, 0);
+  ctx.moveTo(0, -r);
+  ctx.lineTo(0, r);
+  ctx.strokeStyle = "rgba(80,255,120,0.06)";
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+function drawLissajous(w, h, t) {
+  if (!analyser || !data) return;
+
+  analyser.getByteFrequencyData(data);
+
+  let bass = 0;
+  let mid = 0;
+  let high = 0;
+
+  for (let i = 0; i < 48; i++) bass += data[i];
+  for (let i = 48; i < 220; i++) mid += data[i];
+  for (let i = 220; i < 640; i++) high += data[i];
+
+  bass /= 48 * 255;
+  mid /= 172 * 255;
+  high /= 420 * 255;
+
+  const cx = w / 2;
+  const cy = h / 2;
+  const scale = Math.min(w, h) * (0.22 + bass * 0.12);
+  const a = 3 + Math.floor(mid * 3);
+  const b = 2 + Math.floor(high * 4);
+  const phase = t * 0.00028 + bass * Math.PI;
+
+  ctx.save();
+  ctx.translate(cx, cy);
+
+  ctx.shadowBlur = 18 + bass * 24;
+  ctx.shadowColor = "#00ff66";
+  ctx.lineWidth = 1.4 + bass * 2.2;
+  ctx.strokeStyle = `rgba(120, 255, 145, ${0.58 + bass * 0.35})`;
+
+  ctx.beginPath();
+
+  const points = 900;
+  for (let i = 0; i <= points; i++) {
+    const p = i / points;
+    const theta = p * Math.PI * 2;
+
+    const jitter = (high - 0.15) * Math.sin(theta * 37 + t * 0.004) * 7;
+    const x = Math.sin(a * theta + phase) * scale + jitter;
+    const y = Math.sin(b * theta) * scale * (0.78 + mid * 0.22);
+
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+
+  ctx.stroke();
+
+  ctx.shadowBlur = 5;
+  ctx.lineWidth = 0.8;
+  ctx.strokeStyle = "rgba(200,255,200,0.2)";
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+function drawNoise(w, h) {
+  const count = 70;
+  ctx.fillStyle = "rgba(120,255,120,0.08)";
+
+  for (let i = 0; i < count; i++) {
+    const x = Math.random() * w;
+    const y = Math.random() * h;
+    ctx.fillRect(x, y, Math.random() * 2, Math.random() * 2);
+  }
+}
+
+function animate(t) {
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+
+  drawBackground(w, h, t);
+  drawLissajous(w, h, t);
+  drawNoise(w, h);
+
+  requestAnimationFrame(animate);
+}
+
+ctx.fillStyle = "#020802";
+ctx.fillRect(0, 0, canvas.width, canvas.height);
+requestAnimationFrame(animate);
+</script>
+
+</body>
+</html>
